@@ -1,0 +1,69 @@
+<style>
+    body {
+        margin: 0;
+    }
+    #signup {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+        display: none;
+    }
+    #donkey {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+    video {
+        width: 100%;
+        object-fit: cover;
+    }
+    #transparency {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        background-color: black;
+        top: 0;
+        opacity: 0.25;
+        z-index: 10;
+    }
+    #intro {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        text-align: center;
+        z-index: 50;
+    }
+    #intro h1 {
+        top: 10%;
+    }
+    #intro button {
+        top: 70%;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: auto;
+    }
+    canvas {
+        border: 2px solid blue;
+    }
+    #footer {
+        width: 100%;
+        text-align: center;
+        background-color: black;
+        color: white;
+        position: relative;
+        z-index: 50;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 0;
+        padding-right: 0;
+        left: 0
+    }
+    #footer p {
+        margin: 5px;
+    }
+
+</style>
