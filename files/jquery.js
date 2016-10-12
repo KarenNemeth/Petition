@@ -1,5 +1,4 @@
 $(document).ready(function(){
-
     var canvas = $('canvas');
     var paint;
     var clickX = [];
