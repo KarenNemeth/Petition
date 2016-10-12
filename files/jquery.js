@@ -56,7 +56,6 @@ $(document).ready(function(){
         context.clearRect(0, 0, context.canvas.width, context.canvas.height);
         emptySignature = true;
     });
-
     $("#submit").click(function(){
         var firstName = $("#firstname").val();
         var lastName = $("#lastname").val();

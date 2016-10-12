@@ -22,28 +22,42 @@ function pgConnect(query, data){
 }
 function saveData(client,done,data){
     return new Promise(function(resolve, reject){
-        client.query('INSERT INTO signatures (FirstName, LastName, Signature) VALUES ($1,$2,$3);',
-        [data.firstName, data.lastName, data.signature], function (err, result){
+        client.query('INSERT INTO signatures (FirstName, LastName, Signature) VALUES ($1,$2,$3) RETURNING id;',
+        [data.firstName, data.lastName, data.signature], function (err, id){
             done();
             if (err) {
                 reject(err);
             } else {
-                resolve(result);
+                resolve(id.rows[0].id);
             }
+        });
+    });
+}
+function getSigPic(client,done,sigID){
+    return new Promise(function(resolve,reject){
+        client.query('SELECT Signature FROM signatures WHERE id=$1',
+        [sigID], function(err,result){
+            done();
+            if (err) {
+                reject(err);
+            }
+            resolve(result.rows[0].signature);
         });
     });
 }
 function sigCount(client,done){
     return new Promise(function(resolve, reject){
-        client.query('SELECT count(FirstName) FROM signatures', function(err, result){
-            done();
-            if (err){
-                reject(err);
-            } else {
-                var count = result.rows[0].count;
-                resolve(count);
+        client.query('SELECT count(FirstName) FROM signatures',
+            function(err, result){
+                done();
+                if (err){
+                    reject(err);
+                } else {
+                    var count = result.rows[0].count;
+                    resolve(count);
+                }
             }
-        });
+        );
     });
 }
 function getSigs(client,done){
@@ -78,6 +92,7 @@ function getSigs(client,done){
 
 module.exports = {
     "pgConnect": pgConnect,
+    "getSigPic": getSigPic,
     "saveData": saveData,
     "sigCount": sigCount,
     "getSigs": getSigs
