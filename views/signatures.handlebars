@@ -4,6 +4,19 @@
         of torture "The Donald" could possibly imagine!</p>
 
     {{#each sigList}}
-        <h4>{{this}}</h4>
+        <h4>
+            {{#if this.url}}
+                <a href="{{this.url}}">{{this.firstname}} {{this.lastname}}</a>
+            {{else}}
+                {{this.firstname}} {{this.lastname}}
+            {{/if}}
+            {{#if this.age}}
+                ({{this.age}}{{#if this.city}},
+                 <a href="{{this.city}}">{{this.city}}</a>)
+                {{else}}){{/if}}
+            {{else if this.city}}
+                (<a href="{{this.city}}">{{this.city}}</a>)
+            {{/if}}
+            </h4>
     {{/each}}
 </div>

@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../modular-files/database-calls.js');
+const db = require('../modular-files/db-calls-connect&users.js');
+const dbsigs = require('../modular-files/db-calls-sigs.js');
 const util = require('util');
+const path = require('path');
 const chalk = require('chalk');
 var error = chalk.bold.magenta;
 var prop = chalk.cyan;
 
 router.route('/')
     .get(function(req,res){
-        db.pgConnect(db.checkSig,req.session.user.userID).then(function(exists){
+        db.pgConnect(dbsigs.checkSig,req.session.user.userID).then(function(exists){
             if (!exists) {
                 res.render('petition');
             } else {
@@ -18,28 +20,22 @@ router.route('/')
     })
     .post(function(req,res){
         var data = req.body;
-        // console.log(req.body.signature);
-        // console.log(prop('Break'));
         data.userID = req.session.user.userID;
         data.firstname = req.session.user.firstname;
         data.lastname = req.session.user.lastname;
-        // console.log(util.inspect(data), {showHidden: false, depth: null});
-        // console.log("posted");
-        db.pgConnect(db.saveSig,data).then(function(){
-            console.log("issue with redirect");
+        db.pgConnect(dbsigs.saveSig,data).then(function(){
             res.send({redirect: '/petition/signed'});
         });
     });
 
 router.route('/signed')
     .get(function(req,res){
-        db.pgConnect(db.checkSig,req.session.user.userID).then(function(exists){
+        db.pgConnect(dbsigs.checkSig,req.session.user.userID).then(function(exists){
             if (!exists) {
                 res.redirect('/petition');
             } else {
-                db.pgConnect(db.getSigPic,req.session.user.userID).then(function(sigSrc){
-                    db.pgConnect(db.sigCount).then(function(count){
-                        console.log(sigSrc);
+                db.pgConnect(dbsigs.getSigPic,req.session.user.userID).then(function(sigSrc){
+                    db.pgConnect(dbsigs.sigCount).then(function(count){
                         res.render('signed', {
                             "sigpic": sigSrc,
                             "sigCount": count,
@@ -50,10 +46,32 @@ router.route('/signed')
             }
         });
     });
+router.route('/delete')
+    .get(function(req,res){
+        db.pgConnect(dbsigs.deleteSig,req.session.user.userID).then(function(){
+            res.redirect('/petition');
+        });
+    });
 
 router.route('/signatures')
     .get(function(req,res){
-        db.pgConnect(db.getSigs).then(function(sigList){
+        db.pgConnect(dbsigs.getSigs).then(function(sigList){
+            res.render('signatures', {
+                "sigList": sigList,
+                "signed": true
+            });
+        });
+    });
+
+router.route('/signatures/*')
+    .get(function(req,res){
+        var city = path.basename(req.url);
+        city = decodeURI(city);
+        console.log(city);
+        db.pgConnect(dbsigs.getSigsCity, city).catch(function(err){
+            res.redirect('/signatures');
+            throw err;
+        }).then(function(sigList){
             res.render('signatures', {
                 "sigList": sigList,
                 "signed": true

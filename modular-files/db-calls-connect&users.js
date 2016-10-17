@@ -1,6 +1,7 @@
 const pg = require('pg');
 const util = require('util');
 const database = 'postgres://Karen:password@localhost/signatures';
+const dbsigs = require('../modular-files/db-calls-sigs.js');
 const chalk = require('chalk');
 var error = chalk.bold.magenta;
 var prop = chalk.cyan;
@@ -12,20 +13,21 @@ function pgConnect(query, data){
             if (err) {
                 reject(err);
             }
-            console.log(note("running query"));
             query(client,done,data).catch(function(err){
-                // console.log(error(err));
                 reject(err);
                 throw err;
             }).then(function(desiredData){
                 resolve(desiredData);
             });
+        }).catch(function(err){
+            throw err;
         });
     });
 }
 function saveUser(client, done, userData){
     return new Promise(function(resolve, reject){
-        client.query('INSERT INTO users (FirstName, LastName, Email, Password) VALUES ($1,$2,$3,$4) RETURNING ID;',
+        client.query('INSERT INTO users (FirstName, LastName, Email, Password)\
+        VALUES ($1,$2,$3,$4) RETURNING ID;',
         [userData.firstname, userData.lastname, userData.email, userData.password], function(err, ret){
             done();
             if (err){
@@ -74,87 +76,47 @@ function checkProfile(client,done,userID){
         });
     });
 }
-function checkSig(client,done,userID){
+function editProfilePage(client,done,userID){
     return new Promise(function(resolve,reject){
-        client.query('SELECT ID FROM signatures WHERE User_ID = $1;',
-        [userID],function(err,result){
+        client.query('SELECT * FROM users LEFT JOIN user_profiles ON users.ID = user_profiles.user_ID\
+        WHERE users.ID = $1;', [userID],
+        function(err,result){
             done();
-            if(err){
+            if (err) {
                 reject(err);
             }
             resolve(result.rows[0]);
         });
     });
 }
-function saveSig(client,done,data){
-    return new Promise(function(resolve, reject){
-        // console.log(util.inspect(data), {showHidden: false, depth: null});
-        client.query('INSERT INTO signatures (FirstName, LastName, Signature, User_ID) VALUES ($1,$2,$3,$4) RETURNING id;',
-        [data.firstname, data.lastname, data.signature, data.userID], function (err, id){
-            done();
-            if (err) {
-                console.log(error(err));
-                reject(err);
-            } else {
-                // console.log(prop(id.rows[0]));
-                resolve(id.rows[0].id);
-            }
-        });
-    });
-}
-function getSigPic(client,done,sigID){
+function editProfile(client,done,userData){
     return new Promise(function(resolve,reject){
-        client.query('SELECT Signature FROM signatures WHERE User_ID=$1;',
-        [sigID], function(err,result){
-            done();
-            // console.log(prop(result.rows[0].signature));
+        client.query('UPDATE users SET FirstName=$1, LastName=$2, Email=$3, Password=$4\
+        WHERE users.ID=$5;', [userData['firstname'], userData['lastname'], userData['email'], userData['password'], userData['userID']],
+        function(err){
             if (err) {
                 reject(err);
             }
-            resolve(result.rows[0].signature);
-        });
-    });
-}
-function sigCount(client,done){
-    return new Promise(function(resolve, reject){
-        client.query('SELECT count(FirstName) FROM signatures;',
-            function(err, result){
-                done();
-                if (err){
+            client.query('SELECT ID FROM user_profiles WHERE User_ID = $1;', [userData['userID']],
+            function(err,result){
+                if (err) {
                     reject(err);
-                } else {
-                    var count = result.rows[0].count;
-                    resolve(count);
                 }
-            }
-        );
-    });
-}
-function getSigs(client,done){
-    return new Promise(function(resolve,reject){
-        client.query('SELECT FirstName, LastName FROM signatures;', function(err, result){
-            done();
-            if (err) {
-                reject(err);
-            }
-            var promises = [];
-            var sigList = [];
-            var array = result.rows;
-            function list(i){
-                return new Promise(function(resolve){
-                    var first = array[i].firstname;
-                    var second = array[i].lastname;
-                    var fullname = first + " " + second;
-                    sigList.push(fullname);
-                    resolve();
-                });
-            }
-            for (var i=0; i<array.length; i++){
-                var name = list(i);
-                promises.push(name);
-            }
-            Promise.all(promises).then(function(){
-                resolve(sigList);
+                if (!result.rows[0]) {
+                    addProfile(client,done,userData).then(function(){
+                        resolve();
+                    });
+                } else {
+                    client.query('UPDATE user_profiles SET Age=$1, City=$2, URL=$3 WHERE User_ID=$4;',
+                    [userData['age'], userData['city'], userData['website'], userData['userID']],
+                    function(err){
+                        done();
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve();
+                    });
+                }
             });
         });
     });
@@ -164,11 +126,8 @@ module.exports = {
     "pgConnect": pgConnect,
     "saveUser": saveUser,
     "checkUser": checkUser,
-    "getSigPic": getSigPic,
-    "saveSig": saveSig,
-    "sigCount": sigCount,
-    "getSigs": getSigs,
     "addProfile": addProfile,
     "checkProfile": checkProfile,
-    "checkSig": checkSig
+    "editProfilePage": editProfilePage,
+    "editProfile": editProfile
 };

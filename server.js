@@ -1,4 +1,5 @@
-const db = require('./modular-files/database-calls.js');
+const db = require('./modular-files/db-calls-connect&users.js');
+const dbsigs = require('./modular-files/db-calls-sigs.js');
 const express = require('express');
 const app = express();
 const userRouter = require('./routes/user-routes');

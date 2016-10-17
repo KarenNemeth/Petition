@@ -1,6 +1,6 @@
-DROP TABLE signatures;
-DROP TABLE users;
-DROP TABLE user_profiles;
+DROP TABLE signatures CASCADE;
+DROP TABLE users CASCADE;
+DROP TABLE user_profiles CASCADE;
 CREATE TABLE users (
 	ID SERIAL primary key,
 	Created TIMESTAMP DEFAULT now(),
@@ -10,11 +10,9 @@ CREATE TABLE users (
 	Password TEXT not null
 );
 CREATE TABLE signatures (
-	id SERIAL primary key,
+	ID SERIAL primary key,
 	User_ID INT references users(ID),
     Created TIMESTAMP DEFAULT now(),
-	FirstName VARCHAR(225) not null,
-	LastName VARCHAR(225) not null,
 	Signature TEXT not null
 );
 CREATE TABLE user_profiles (
