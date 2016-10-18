@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const userjs = require('../modular-files/users.js');
 const bcrypt = require('../modular-files/bcrypt.js');
-const db = require('../modular-files/db-calls-connect&users.js');
+const db = require('../modular-files/db-connect.js');
+const dbusers = require('../modular-files/db-calls-users.js');
 const dbsigs = require('../modular-files/db-calls-sigs.js');
 const util = require("util");
 const chalk = require('chalk');
@@ -18,7 +19,9 @@ router.route('/register')
         userjs.checkData(userData,res,'register').then(function(){
             bcrypt.hashPassword(userData.password).then(function(hash){
                 userData.password = hash;
-                db.pgConnect(db.saveUser, userData).catch(function(err){
+                var saveUser = dbusers.saveUser;
+                saveUser.params = [userData.firstname, userData.lastname, userData.email, userData.password];
+                db.pgConnect(saveUser.call, saveUser.params, saveUser.callback).catch(function(err){
                     res.render('register', {"message": "You already have an account with that email! Try Logging In."});
                     throw err;
                 }).then(function(userID){
@@ -40,24 +43,26 @@ router.route('/login')
     .post(function(req,res){
         var userData = req.body;
         userjs.checkData(userData,res,'login').then(function(){
-            console.log("Users okay");
-            db.pgConnect(db.checkUser, userData.email).then(function(data){
+            var checkUser = dbusers.checkUser;
+            checkUser.params = [userData.email];
+            db.pgConnect(checkUser.call, checkUser.params, checkUser.callback).then(function(data){
                 if (!data){
                     res.render('login', {"message": "Email Address Not Found. Please Register"});
+                    return;
                 }
                 bcrypt.checkPassword(userData.password, data.password).then(function(matches){
                     if (!matches) {
-                        console.log("db okay");
                         res.render('login', {"message": "Incorrect Password"});
                         return;
                     } else {
-                        console.log("db okay");
                         req.session.user = {
                             "firstname": data.firstname,
                             "lastname": data.lastname,
                             "userID": data.id
                         };
-                        db.pgConnect(db.checkProfile, data.id).then(function(exists){
+                        var checkProfile = dbusers.checkProfile;
+                        checkProfile.params = [data.id];
+                        db.pgConnect(checkProfile.call, checkProfile.params, checkProfile.callback).then(function(exists){
                             if (!exists){
                                 res.redirect('/user/profile');
                             } else {
@@ -91,18 +96,19 @@ router.route('/profile')
         if (userData.age == "") {
             userData.age = null;
         }
-        console.log(userData.age);
-        db.pgConnect(db.addProfile, userData).catch(function(err){
+        var params = [userData.userID, userData.age, userData.city, userData.website];
+        db.pgConnect(dbusers.addProfile, params).catch(function(err){
             res.render('profile', {"message": "Could not save to database. Please try again."});
             throw err;
         }).then(function(){
-            console.log("resolved");
             res.redirect('/petition');
         });
     });
 router.route('/profile/edit')
     .get(function(req,res){
-        db.pgConnect(db.editProfilePage,req.session.user.userID).then(function(values){
+        var editProfilePage = dbusers.editProfilePage;
+        editProfilePage.params = [req.session.user.userID];
+        db.pgConnect(editProfilePage.call,editProfilePage.params,editProfilePage.callback).then(function(values){
             res.render('editprofile', values);
         });
     })
@@ -115,10 +121,29 @@ router.route('/profile/edit')
         userjs.checkData(userData,res,'editprofile').then(function(){
             bcrypt.hashPassword(userData.password).then(function(hash){
                 userData.password = hash;
-                userData["userID"] = req.session.user.userID;
-                db.pgConnect(db.editProfile,userData).then(function(){
-                    console.log("finished");
-                    res.redirect('/petition/signed');
+                userData.userID = req.session.user.userID;
+                //edit profile
+                var params = [userData.firstname, userData.lastname, userData.email, userData.password, userData.userID];
+                db.pgConnect(dbusers.updateUsers,params).then(function(){
+                    db.pgConnect(dbusers.checkProfile.call,[userData.userID]).then(function(data){
+                        var params = [userData.userID, userData.age, userData.city, userData.website];
+                        if (!data.rows[0]){
+                            db.pgConnect(dbusers.addProfile,params).catch(function(err){
+                                res.render('editprofile', {"message": "Could not save to database. Please try again."});
+                                throw err;
+                            }).then(function(){
+                                res.redirect('/petition');
+                            });
+                        } else {
+                            db.pgConnect(dbusers.updateProfile,params).catch(function(err){
+                                res.render('editprofile', {"message": "Could not save to database. Please try again."});
+                                throw err;
+                            }).then(function(){
+                                res.redirect('/petition');
+                            });
+                        }
+                    });
+
                 });
             });
         });

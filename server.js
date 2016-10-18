@@ -1,5 +1,5 @@
-const db = require('./modular-files/db-calls-connect&users.js');
-const dbsigs = require('./modular-files/db-calls-sigs.js');
+const db = require('./modular-files/db-connect.js');
+const dbusers = require('./modular-files/db-calls-users.js');
 const express = require('express');
 const app = express();
 const userRouter = require('./routes/user-routes');
@@ -11,11 +11,8 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const path = require('path');
-const util = require('util');
 const chalk = require('chalk');
 const note = chalk.green;
-const prop = chalk.cyan;
-const error = chalk.bold.red;
 
 app.use(bodyParser.urlencoded({
     extended:false
@@ -32,7 +29,9 @@ app.use(express.static(staticURL));
 
 app.get('/', function(req,res){
     if (req.session.user) {
-        db.pgConnect(db.checkProfile, req.session.user.userID).then(function(exists){
+        var checkProfile = dbusers.checkProfile;
+        checkProfile.params = [req.session.user.userID];
+        db.pgConnect(checkProfile.call, checkProfile.params, checkProfile.callback).then(function(exists){
             if (!exists){
                 res.redirect('/user/profile');
             } else {

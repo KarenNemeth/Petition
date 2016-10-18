@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../modular-files/db-calls-connect&users.js');
+const db = require('../modular-files/db-connect.js');
+const dbusers = require('../modular-files/db-calls-users.js');
 const dbsigs = require('../modular-files/db-calls-sigs.js');
 const util = require('util');
 const path = require('path');
@@ -10,7 +11,9 @@ var prop = chalk.cyan;
 
 router.route('/')
     .get(function(req,res){
-        db.pgConnect(dbsigs.checkSig,req.session.user.userID).then(function(exists){
+        var checkSig = dbsigs.checkSig;
+        checkSig.params = [req.session.user.userID];
+        db.pgConnect(checkSig.call,checkSig.params,checkSig.callback).then(function(exists){
             if (!exists) {
                 res.render('petition');
             } else {
@@ -19,23 +22,26 @@ router.route('/')
         });
     })
     .post(function(req,res){
-        var data = req.body;
-        data.userID = req.session.user.userID;
-        data.firstname = req.session.user.firstname;
-        data.lastname = req.session.user.lastname;
-        db.pgConnect(dbsigs.saveSig,data).then(function(){
+        var saveSig = dbsigs.saveSig;
+        saveSig.params = [req.body.signature,req.session.user.userID];
+        db.pgConnect(saveSig.call,saveSig.params,saveSig.callback).then(function(){
             res.send({redirect: '/petition/signed'});
         });
     });
 
 router.route('/signed')
     .get(function(req,res){
-        db.pgConnect(dbsigs.checkSig,req.session.user.userID).then(function(exists){
+        var checkSig = dbsigs.checkSig;
+        checkSig.params = [req.session.user.userID];
+        db.pgConnect(checkSig.call,checkSig.params,checkSig.callback).then(function(exists){
             if (!exists) {
                 res.redirect('/petition');
             } else {
-                db.pgConnect(dbsigs.getSigPic,req.session.user.userID).then(function(sigSrc){
-                    db.pgConnect(dbsigs.sigCount).then(function(count){
+                var getSigPic = dbsigs.getSigPic;
+                getSigPic.params = [req.session.user.userID];
+                db.pgConnect(getSigPic.call,getSigPic.params,getSigPic.callback).then(function(sigSrc){
+                    var sigCount = dbsigs.sigCount;
+                    db.pgConnect(sigCount.call,[],sigCount.callback).then(function(count){
                         res.render('signed', {
                             "sigpic": sigSrc,
                             "sigCount": count,
@@ -48,14 +54,15 @@ router.route('/signed')
     });
 router.route('/delete')
     .get(function(req,res){
-        db.pgConnect(dbsigs.deleteSig,req.session.user.userID).then(function(){
+        db.pgConnect(dbsigs.deleteSig,[req.session.user.userID]).then(function(){
             res.redirect('/petition');
         });
     });
 
 router.route('/signatures')
     .get(function(req,res){
-        db.pgConnect(dbsigs.getSigs).then(function(sigList){
+        var getSigs = dbsigs.getSigs;
+        db.pgConnect(getSigs.call,[],getSigs.callback).then(function(sigList){
             res.render('signatures', {
                 "sigList": sigList,
                 "signed": true
@@ -67,11 +74,20 @@ router.route('/signatures/*')
     .get(function(req,res){
         var city = path.basename(req.url);
         city = decodeURI(city);
-        console.log(city);
-        db.pgConnect(dbsigs.getSigsCity, city).catch(function(err){
+        var getSigsCity = dbsigs.getSigsCity;
+        getSigsCity.params = [city];
+        db.pgConnect(getSigsCity.call,getSigsCity.params,getSigsCity.callback).catch(function(err){
             res.redirect('/signatures');
             throw err;
         }).then(function(sigList){
+            console.log(sigList);
+            if (sigList.length == 0){
+                res.render('signatures', {
+                    "message": "Could not find any signatures from " + city,
+                    "signed": true
+                });
+                return;
+            }
             res.render('signatures', {
                 "sigList": sigList,
                 "signed": true

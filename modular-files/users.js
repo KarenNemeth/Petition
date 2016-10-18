@@ -1,9 +1,4 @@
-const chalk = require('chalk');
-var error = chalk.bold.red;
-var prop = chalk.cyan;
-
-
-function checkData(userData, res, page){
+exports.checkData = function(userData, res, page){
     return new Promise(function(resolve, reject){
         var promises = [];
         for (var prop in userData) {
@@ -33,8 +28,4 @@ function checkData(userData, res, page){
         res.render(page, {"message": msg});
         throw msg;
     });
-}
-
-module.exports = {
-    "checkData": checkData
 };
