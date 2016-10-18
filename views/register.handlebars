@@ -3,6 +3,7 @@
     <div id="registerform">
         <div id="message">{{message}}</div>
         <form method="POST">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
             First Name:<br>
             <input type="text" name="firstname"><br>
             Last Name:<br>

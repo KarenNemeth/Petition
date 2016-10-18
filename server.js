@@ -1,5 +1,6 @@
 const db = require('./modular-files/db-connect.js');
 const dbusers = require('./modular-files/db-calls-users.js');
+const dbsigs = require('./modular-files/db-calls-sigs.js');
 const express = require('express');
 const app = express();
 const userRouter = require('./routes/user-routes');
@@ -11,8 +12,11 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const path = require('path');
+const util = require('util');
 const chalk = require('chalk');
 const note = chalk.green;
+const prop = chalk.cyan;
+const error = chalk.bold.red;
 
 app.use(bodyParser.urlencoded({
     extended:false

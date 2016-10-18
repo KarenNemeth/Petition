@@ -3,20 +3,21 @@
     <div id="registerform">
         <div id="message">{{message}}</div>
         <form method="POST">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
             First Name:<br>
-            <input type="text" name="firstname" value="{{firstname}}"><br>
+            <input type="text" name="firstname" value="{{values.firstname}}"><br>
             Last Name:<br>
-            <input type="text" name="lastname" value="{{lastname}}"><br>
+            <input type="text" name="lastname" value="{{values.lastname}}"><br>
             Email Address:
-            <input type="text" name="email" value="{{email}}"><br>
+            <input type="text" name="email" value="{{values.email}}"><br>
             Password:
             <input type="password" name="password"><br>
             Age:<br>
-            <input type="text" name="age" value="{{age}}"><br>
+            <input type="text" name="age" value="{{values.age}}"><br>
             City:<br>
-            <input type="text" name="city" value="{{city}}"><br>
+            <input type="text" name="city" value="{{values.city}}"><br>
             Website:
-            <input type="text" name="website" value="{{url}}"><br>
+            <input type="text" name="website" value="{{values.url}}"><br>
             <input type="submit" value="update">
         </form>
     </div>

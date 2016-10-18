@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const csurf = require('csurf')
+var csrfProtection = csurf({ cookie: true });
 const userjs = require('../modular-files/users.js');
 const bcrypt = require('../modular-files/bcrypt.js');
 const db = require('../modular-files/db-connect.js');
@@ -9,10 +11,11 @@ const util = require("util");
 const chalk = require('chalk');
 var error = chalk.bold.magenta;
 var prop = chalk.cyan;
+router.use(csrfProtection);
 
 router.route('/register')
     .get(function(req,res){
-        res.render('register');
+        res.render('register', {csrfToken: req.csrfToken()});
     })
     .post(function(req,res){
         var userData = req.body;
@@ -38,7 +41,7 @@ router.route('/register')
 
 router.route('/login')
     .get(function(req,res){
-        res.render('login');
+        res.render('login', {csrfToken: req.csrfToken()});
     })
     .post(function(req,res){
         var userData = req.body;
@@ -87,7 +90,10 @@ router.route('/profile')
         if (!req.session.user) {
             res.redirect('/');
         }
-        res.render('profile', {"message": "Welcome Back " + req.session.user.firstname + "."});
+        res.render('profile', {
+            "message": "Welcome " + req.session.user.firstname + ".",
+            csrfToken: req.csrfToken()
+        });
     })
     .post(function(req,res){
         var userData = req.body;
@@ -109,7 +115,10 @@ router.route('/profile/edit')
         var editProfilePage = dbusers.editProfilePage;
         editProfilePage.params = [req.session.user.userID];
         db.pgConnect(editProfilePage.call,editProfilePage.params,editProfilePage.callback).then(function(values){
-            res.render('editprofile', values);
+            res.render('editprofile', {
+                values: values,
+                csrfToken: req.csrfToken()
+            });
         });
     })
     .post(function(req,res){
