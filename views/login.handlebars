@@ -1,13 +1,12 @@
 <div class="body">
-    <h3>Log In</h3>
-    <div id="loginform">
+    <div class="form" id="loginform">
+        <h3>Log In</h3>
         <div id="message">{{message}}</div>
         <form method="POST">
-            Email Address:
-            <input type="text" name="email"><br>
-            Password:
-            <input type="password" name="password"><br>
-            <input type="submit" value="submit">
+            <input type="hidden" name="_csrf" value="{{csrfToken}}">
+            <input type="text" name="email" placeholder="Email Address"><br>
+            <input type="password" name="password" placeholder="Password"><br>
+            <input type="submit" value="Submit">
         </form>
         <p>Not registered? <a href="/user/register" id="registerdesired">Click here.</a></p>
     </div>

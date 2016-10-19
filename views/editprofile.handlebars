@@ -1,24 +1,17 @@
 <div class="body">
-    <h3>Can we please have some demographic information about you?</h3>
-    <div id="registerform">
+    <div class="form" id="profileform">
+        <h3>Edit Profile</h3>
         <div id="message">{{message}}</div>
         <form method="POST">
             <input type="hidden" name="_csrf" value="{{csrfToken}}">
-            First Name:<br>
-            <input type="text" name="firstname" value="{{values.firstname}}"><br>
-            Last Name:<br>
-            <input type="text" name="lastname" value="{{values.lastname}}"><br>
-            Email Address:
-            <input type="text" name="email" value="{{values.email}}"><br>
-            Password:
-            <input type="password" name="password"><br>
-            Age:<br>
-            <input type="text" name="age" value="{{values.age}}"><br>
-            City:<br>
-            <input type="text" name="city" value="{{values.city}}"><br>
-            Website:
-            <input type="text" name="website" value="{{values.url}}"><br>
-            <input type="submit" value="update">
+            <input type="text" name="firstname" value="{{values.firstname}}" placeholder="First Name"><br>
+            <input type="text" name="lastname" value="{{values.lastname}}" placeholder="Last Name"><br>
+            <input type="text" name="email" value="{{values.email}}" placeholder="Email Address"><br>
+            <input type="password" name="password" placeholder="Password"><br>
+            <input type="text" name="age" value="{{values.age}}" placeholder="Age"><br>
+            <input type="text" name="city" value="{{values.city}}" placeholder="City"><br>
+            <input type="text" name="website" value="{{values.url}}" placeholder="Website"><br>
+            <input type="submit" value="Update">
         </form>
     </div>
 </div>

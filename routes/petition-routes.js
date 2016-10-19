@@ -80,7 +80,6 @@ router.route('/signatures/*')
             res.redirect('/signatures');
             throw err;
         }).then(function(sigList){
-            console.log(sigList);
             if (sigList.length == 0){
                 res.render('signatures', {
                     "message": "Could not find any signatures from " + city,

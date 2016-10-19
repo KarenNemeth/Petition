@@ -1,15 +1,12 @@
 <div class="body">
-    <h3>Can we please have some demographic information about you?</h3>
-    <div id="registerform">
+    <div class="form" id="profileform">
+        <h3>Profile</h3>
         <div id="message">{{message}}</div>
         <form method="POST">
             <input type="hidden" name="_csrf" value="{{csrfToken}}">
-            Age:<br>
-            <input type="text" name="age"><br>
-            City:<br>
-            <input type="text" name="city"><br>
-            Website:
-            <input type="text" name="website"><br>
+            <input type="text" name="age" placeholder="Age"><br>
+            <input type="text" name="city" placeholder="City"><br>
+            <input type="text" name="website" placeholder="Website"><br>
             <input type="submit" value="submit">
         </form>
     </div>
