@@ -11,6 +11,8 @@ app.set('view engine', 'handlebars');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
+const session = require('express-session');
+const Store = require('connect-redis')(session);
 const path = require('path');
 const util = require('util');
 const chalk = require('chalk');
@@ -22,10 +24,15 @@ app.use(bodyParser.urlencoded({
     extended:false
 }));
 app.use(cookieParser());
-app.use(cookieSession({
-    secret: 'This is a secret!',
-    maxAge: 1000 * 60 * 60 * 24 * 14,
-    name: 'session'
+app.use(session({
+    store: new Store({
+        ttl: 86400,
+        host: 'localhost',
+        port: 6379
+    }),
+    resave: false,
+    saveUninitialized: true,
+    secret: 'This is a secret!'
 }));
 
 var staticURL = path.join(__dirname, 'files');
