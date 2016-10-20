@@ -1,16 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const csurf = require('csurf')
+const csurf = require('csurf');
 var csrfProtection = csurf({ cookie: true });
 const userjs = require('../modular-files/users.js');
 const bcrypt = require('../modular-files/bcrypt.js');
 const db = require('../modular-files/db-connect.js');
 const dbusers = require('../modular-files/db-calls-users.js');
-const dbsigs = require('../modular-files/db-calls-sigs.js');
+const redis = require('redis');
+const client = redis.createClient({
+    host: 'localhost',
+    port: 6379
+});
+client.on('error', function(err) {
+    console.log(err);
+});
 const util = require("util");
 const chalk = require('chalk');
 var error = chalk.bold.magenta;
 var prop = chalk.cyan;
+var note = chalk.green;
+
 router.use(csrfProtection);
 
 router.route('/register')
@@ -25,7 +34,10 @@ router.route('/register')
                 var saveUser = dbusers.saveUser;
                 saveUser.params = [userData.firstname, userData.lastname, userData.email, userData.password];
                 db.pgConnect(saveUser.call, saveUser.params, saveUser.callback).catch(function(err){
-                    res.render('register', {"message": "You already have an account with that email! Try Logging In."});
+                    res.render('register', {
+                        "message": "You already have an account with that email! Try Logging In.",
+                        csrfToken: req.csrfToken()
+                    });
                     throw err;
                 }).then(function(userID){
                     req.session.user = {
@@ -44,37 +56,80 @@ router.route('/login')
         res.render('login', {csrfToken: req.csrfToken()});
     })
     .post(function(req,res){
-        var userData = req.body;
-        userjs.checkData(userData,res,'login').then(function(){
-            var checkUser = dbusers.checkUser;
-            checkUser.params = [userData.email];
-            db.pgConnect(checkUser.call, checkUser.params, checkUser.callback).then(function(data){
-                if (!data){
-                    res.render('login', {"message": "Email Address Not Found. Please Register"});
-                    return;
-                }
-                bcrypt.checkPassword(userData.password, data.password).then(function(matches){
-                    if (!matches) {
-                        res.render('login', {"message": "Incorrect Password"});
-                        return;
-                    } else {
-                        req.session.user = {
-                            "firstname": data.firstname,
-                            "lastname": data.lastname,
-                            "userID": data.id
-                        };
-                        var checkProfile = dbusers.checkProfile;
-                        checkProfile.params = [data.id];
-                        db.pgConnect(checkProfile.call, checkProfile.params, checkProfile.callback).then(function(exists){
-                            if (!exists){
-                                res.redirect('/user/profile');
+        client.get('blockattempts', function(err, blocked){
+            if (err) {
+                console.log(err);
+            }
+            if (blocked) {
+                blocked++;
+                var time = 90;
+                time *= blocked;
+                console.log(note("time " + time));
+                client.incr('blockattempts');
+                client.expire('blockattempts', time);
+                res.render('login', {
+                    "message": "Too many attempts. Please wait " + time + " seconds.",
+                    csrfToken: req.csrfToken()
+                });
+                return;
+            } else {
+                var userData = req.body;
+                userjs.checkData(userData,res,'login').then(function(){
+                    var checkUser = dbusers.checkUser;
+                    checkUser.params = [userData.email];
+                    db.pgConnect(checkUser.call, checkUser.params, checkUser.callback).then(function(data){
+                        if (!data){
+                            res.render('login', {
+                                "message": "Email Address Not Found. Please Register",
+                                csrfToken: req.csrfToken()
+                            });
+                            return;
+                        }
+                        bcrypt.checkPassword(userData.password, data.password).then(function(matches){
+                            if (!matches) {
+                                client.incr('passwordtries');
+                                client.expire('passwordtries', 60);
+                                client.get('passwordtries', function(err, attempts){
+                                    if (err) {
+                                        console.log(err);
+                                    }
+                                    if (attempts == 3) {
+                                        client.incr('blockattempts');
+                                        client.expire('blockattempts', 90);
+                                        res.render('login', {
+                                            "message": "Too many attempts. Please wait 90 seconds.",
+                                            csrfToken: req.csrfToken()
+                                        });
+                                        return;
+                                    } else {
+                                        res.render('login', {
+                                            "message": "Incorrect Password",
+                                            csrfToken: req.csrfToken()
+                                        });
+                                        return;
+                                    }
+                                });
                             } else {
-                                res.redirect('/petition');
+                                client.del('passwordtries');
+                                req.session.user = {
+                                    "firstname": data.firstname,
+                                    "lastname": data.lastname,
+                                    "userID": data.id
+                                };
+                                var checkProfile = dbusers.checkProfile;
+                                checkProfile.params = [data.id];
+                                db.pgConnect(checkProfile.call, checkProfile.params, checkProfile.callback).then(function(exists){
+                                    if (!exists){
+                                        res.redirect('/user/profile');
+                                    } else {
+                                        res.redirect('/petition');
+                                    }
+                                });
                             }
                         });
-                    }
+                    });
                 });
-            });
+            }
         });
     });
 router.route('*')
@@ -104,7 +159,10 @@ router.route('/profile')
         }
         var params = [userData.userID, userData.age, userData.city, userData.website];
         db.pgConnect(dbusers.addProfile, params).catch(function(err){
-            res.render('profile', {"message": "Could not save to database. Please try again."});
+            res.render('profile', {
+                "message": "Could not save to database. Please try again.",
+                csrfToken: req.csrfToken()
+            });
             throw err;
         }).then(function(){
             res.redirect('/petition');
@@ -138,14 +196,20 @@ router.route('/profile/edit')
                         var params = [userData.userID, userData.age, userData.city, userData.website];
                         if (!data.rows[0]){
                             db.pgConnect(dbusers.addProfile,params).catch(function(err){
-                                res.render('editprofile', {"message": "Could not save to database. Please try again."});
+                                res.render('editprofile', {
+                                    "message": "Could not save to database. Please try again.",
+                                    csrfToken: req.csrfToken()
+                                });
                                 throw err;
                             }).then(function(){
                                 res.redirect('/petition');
                             });
                         } else {
                             db.pgConnect(dbusers.updateProfile,params).catch(function(err){
-                                res.render('editprofile', {"message": "Could not save to database. Please try again."});
+                                res.render('editprofile', {
+                                    "message": "Could not save to database. Please try again.",
+                                    csrfToken: req.csrfToken()
+                                });
                                 throw err;
                             }).then(function(){
                                 res.redirect('/petition');

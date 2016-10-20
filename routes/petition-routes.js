@@ -1,8 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../modular-files/db-connect.js');
-const dbusers = require('../modular-files/db-calls-users.js');
 const dbsigs = require('../modular-files/db-calls-sigs.js');
+const redis = require('redis');
+const client = redis.createClient({
+    host: 'localhost',
+    port: 6379
+});
+client.on('error', function(err) {
+    console.log(err);
+});
 const util = require('util');
 const path = require('path');
 const chalk = require('chalk');
@@ -25,6 +32,7 @@ router.route('/')
         var saveSig = dbsigs.saveSig;
         saveSig.params = [req.body.signature,req.session.user.userID];
         db.pgConnect(saveSig.call,saveSig.params,saveSig.callback).then(function(){
+            client.del('signatures');
             res.send({redirect: '/petition/signed'});
         });
     });
@@ -55,18 +63,38 @@ router.route('/signed')
 router.route('/delete')
     .get(function(req,res){
         db.pgConnect(dbsigs.deleteSig,[req.session.user.userID]).then(function(){
+            client.del('signatures');
             res.redirect('/petition');
         });
     });
 
 router.route('/signatures')
     .get(function(req,res){
-        var getSigs = dbsigs.getSigs;
-        db.pgConnect(getSigs.call,[],getSigs.callback).then(function(sigList){
-            res.render('signatures', {
-                "sigList": sigList,
-                "signed": true
-            });
+        client.get('signatures', function(err, sigList){
+            if (err) {
+                return console.log(err);
+            }
+            if (sigList) {
+                sigList = JSON.parse(sigList);
+                res.render('signatures', {
+                    "sigList": sigList,
+                    "signed": true
+                });
+            } else {
+                var getSigs = dbsigs.getSigs;
+                db.pgConnect(getSigs.call,[],getSigs.callback).then(function(sigList){
+                    var sigListString = JSON.stringify(sigList);
+                    client.setex('signatures', 86400, sigListString, function(err){
+                        if (err) {
+                            console.log(error("Couldn't set redis cache"));
+                        }
+                        res.render('signatures', {
+                            "sigList": sigList,
+                            "signed": true
+                        });
+                    });
+                });
+            }
         });
     });
 
